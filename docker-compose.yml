@@ -11,3 +11,7 @@ services:
       nofile:
         soft: 65535
         hard: 65535
+    deploy:
+      resources:
+        limits:
+          memory: 2G

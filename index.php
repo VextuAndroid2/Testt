@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DoS Panel · MAX</title>
+<title>DoS Panel · MAX v4</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -30,21 +30,21 @@ input:focus,select:focus{border-color:#ff3030}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .status{margin:10px 0 0;font-size:.7rem;color:#555}
 .status.on{color:#0f0}
-.log{margin-top:12px;background:#030303;border:1px solid #1a1a1a;border-radius:5px;padding:10px;font-size:.68rem;height:260px;overflow-y:auto;color:#0f0;white-space:pre-wrap;line-height:1.4}
+.log{margin-top:12px;background:#030303;border:1px solid #1a1a1a;border-radius:5px;padding:10px;font-size:.68rem;height:280px;overflow-y:auto;color:#0f0;white-space:pre-wrap;line-height:1.4}
 .footer{margin-top:12px;font-size:.6rem;color:#333;text-align:center}
 </style>
 </head>
 <body>
 <div class="panel">
-  <h1>DoS PANEL · MAX</h1>
-  <div class="sub">background · live connection logs · kill switch</div>
+  <h1>DoS PANEL · MAX v4</h1>
+  <div class="sub">curl_multi · parallel · auto-stop · live conn logs</div>
 
   <form id="form">
     <label>Objetivo</label>
-    <input type="text" name="target" id="target" placeholder="IP o https://site.com" required>
+    <input type="text" name="target" placeholder="IP o https://site.com" required>
 
     <label>Tipo</label>
-    <select name="type" id="type">
+    <select name="type">
       <option value="udp">UDP Flood</option>
       <option value="http">HTTP Flood</option>
       <option value="https">HTTPS Flood</option>
@@ -64,11 +64,11 @@ input:focus,select:focus{border-color:#ff3030}
     <div class="row">
       <div>
         <label>Duración</label>
-        <input type="number" name="duration" id="duration" value="5" min="1" max="9999">
+        <input type="number" name="duration" value="60" min="1" max="9999">
       </div>
       <div>
         <label>Unidad</label>
-        <select name="unit" id="unit">
+        <select name="unit">
           <option value="s">Segundos</option>
           <option value="m" selected>Minutos</option>
           <option value="h">Horas</option>
@@ -83,71 +83,34 @@ input:focus,select:focus{border-color:#ff3030}
   </form>
 
   <div class="status" id="status">● idle</div>
-  <div class="log" id="log">[*] listo — esperando orden\n</div>
-  <div class="footer">max power · connection level logs</div>
+  <div class="log" id="log">[*] listo\n</div>
+  <div class="footer">v4 · curl_multi parallel · forced timer kill</div>
 </div>
 
 <script>
-const logEl = document.getElementById('log');
-const statusEl = document.getElementById('status');
-const btnStart = document.getElementById('btnStart');
-const btnStop = document.getElementById('btnStop');
-let polling = null;
-
-function setLog(txt) {
-  logEl.textContent = txt || '';
-  logEl.scrollTop = logEl.scrollHeight;
+const logEl=document.getElementById('log'),statusEl=document.getElementById('status');
+const btnStart=document.getElementById('btnStart'),btnStop=document.getElementById('btnStop');
+let polling=null;
+function setLog(t){logEl.textContent=t||'';logEl.scrollTop=logEl.scrollHeight}
+async function poll(){
+  try{
+    const r=await fetch('attack.php?action=status');const d=await r.json();
+    setLog(d.log||'');
+    if(d.running){statusEl.textContent='● ATTACKING  pid '+d.pid;statusEl.className='status on';btnStart.disabled=true;btnStop.disabled=false}
+    else{statusEl.textContent='● idle';statusEl.className='status';btnStart.disabled=false;btnStop.disabled=true;if(polling){clearInterval(polling);polling=null}}
+  }catch(e){}
 }
-
-async function poll() {
-  try {
-    const r = await fetch('attack.php?action=status');
-    const d = await r.json();
-    setLog(d.log || '');
-    if (d.running) {
-      statusEl.textContent = '● ATTACKING  pid ' + d.pid;
-      statusEl.className = 'status on';
-      btnStart.disabled = true;
-      btnStop.disabled = false;
-    } else {
-      statusEl.textContent = '● idle';
-      statusEl.className = 'status';
-      btnStart.disabled = false;
-      btnStop.disabled = true;
-      if (polling) { clearInterval(polling); polling = null; }
-    }
-  } catch(e) {}
-}
-
-document.getElementById('form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  btnStart.disabled = true;
-  const fd = new FormData(e.target);
-  fd.append('action', 'start');
-  try {
-    const r = await fetch('attack.php', { method: 'POST', body: fd });
-    const d = await r.json();
-    if (d.ok) {
-      if (!polling) polling = setInterval(poll, 600);
-      poll();
-    } else {
-      setLog('[!] ' + (d.msg || 'error') + '\n');
-      btnStart.disabled = false;
-    }
-  } catch(err) {
-    setLog('[!] ' + err.message + '\n');
-    btnStart.disabled = false;
-  }
+document.getElementById('form').addEventListener('submit',async e=>{
+  e.preventDefault();btnStart.disabled=true;
+  const fd=new FormData(e.target);fd.append('action','start');
+  try{
+    const r=await fetch('attack.php',{method:'POST',body:fd});const d=await r.json();
+    if(d.ok){if(!polling)polling=setInterval(poll,500);poll()}
+    else{setLog('[!] '+(d.msg||'error')+'\n');btnStart.disabled=false}
+  }catch(err){setLog('[!] '+err.message+'\n');btnStart.disabled=false}
 });
-
-btnStop.addEventListener('click', async () => {
-  btnStop.disabled = true;
-  await fetch('attack.php', { method: 'POST', body: new URLSearchParams({action:'stop'}) });
-  poll();
-});
-
-poll();
-polling = setInterval(poll, 1000);
+btnStop.addEventListener('click',async()=>{btnStop.disabled=true;await fetch('attack.php',{method:'POST',body:new URLSearchParams({action:'stop'})});poll()});
+poll();polling=setInterval(poll,800);
 </script>
 </body>
 </html>
