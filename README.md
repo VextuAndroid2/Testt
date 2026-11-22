@@ -1,25 +1,21 @@
-# DoS Panel · PHP + Docker
+# DoS Panel v2 · PHP + Docker
+
+Background attack · live logs · stop button · survives page reload
 
 ## Run
 ```bash
 docker compose up -d --build
 ```
 
-Open → http://localhost:8080
+Open http://localhost:8080
 
-## Stop
+## Features
+- Attack runs in background (worker.php)
+- Logs stream live even if you reload
+- Stop button kills the process
+- Intensities: suave → mortal
+
+## Stop container
 ```bash
 docker compose down
 ```
-
-## Intensity
-| Level     | Threads | Sockets | Packet size |
-|-----------|---------|---------|-------------|
-| suave     | 8       | 30      | 512         |
-| baja      | 20      | 80      | 1024        |
-| media     | 50      | 150     | 2048        |
-| alta      | 120     | 300     | 4096        |
-| bastante  | 250     | 500     | 8192        |
-| mortal    | 500     | 900     | 16384       |
-
-UDP · HTTP · HTTPS · Slowloris
